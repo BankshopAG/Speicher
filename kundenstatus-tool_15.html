@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GreenBESS – Kundenstatus (Admin & Frontbereich)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f7f4;--panel:#fff;--panel2:#f0f5f1;--line:#e2e9e3;--txt:#1f2b24;--muted:#67766c;
+    --accent:#2f9e5f;--accent-d:#1f7a45;--warn:#d98a2b;--bad:#d15238;--neutral:#3d78b0;
+    --shadow:0 1px 3px rgba(20,50,30,.06),0 6px 20px rgba(20,50,30,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:15px;line-height:1.5}
+  .wrap{max-width:1150px;margin:0 auto;padding:24px 20px 70px}
+  .hidden{display:none!important}
+  h1{font-size:22px;margin:0 0 4px;font-weight:750}
+  .sub{color:var(--muted);font-size:13px}
+  /* Login */
+  .login{max-width:430px;margin:8vh auto 0;background:transparent;border:none;border-radius:18px;box-shadow:none;padding:30px 28px;text-align:center}
+  .login .logo{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent-d));margin:0 auto 14px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px}
+  .tabs{display:flex;gap:8px;margin:22px 0 16px;background:var(--panel2);padding:5px;border-radius:12px}
+  .tab{flex:1;padding:10px;border-radius:9px;border:none;background:transparent;font-weight:650;font-size:13.5px;color:var(--muted);cursor:pointer}
+  .tab.active{background:#fff;color:var(--accent-d);box-shadow:var(--shadow)}
+  .field{text-align:left;margin-bottom:14px}
+  .field label{font-size:12.5px;font-weight:650;color:var(--muted);display:block;margin-bottom:6px}
+  input[type=text],input[type=password]{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:11px;font-size:15px;font-family:inherit;background:#fbfdfb}
+  input:focus{outline:none;border-color:var(--accent)}
+  .pinrow{position:relative}
+  .toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;font-weight:600}
+  .btn{background:var(--accent);color:#fff;border:none;padding:12px 18px;border-radius:11px;font-size:14.5px;font-weight:700;cursor:pointer;width:100%;box-shadow:0 2px 8px rgba(31,122,69,.25)}
+  .btn:active{transform:translateY(1px)}
+  .btn.sec{background:var(--panel2);color:var(--txt);box-shadow:none;border:1px solid var(--line);width:auto}
+  .btn.warn{background:var(--warn)}
+  .err{color:var(--bad);font-size:13px;margin-top:10px;min-height:18px}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:14px;background:var(--panel2);border-radius:10px;padding:10px 12px;text-align:left}
+  /* App header */
+  .apphead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:16px 20px;margin-bottom:16px;position:relative;overflow:hidden}
+  .apphead::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,var(--accent),var(--accent-d))}
+  .apphead .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .roletag{font-size:11px;font-weight:800;padding:4px 11px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em}
+  .roletag.adm{background:#e4eef7;color:#2b5a86}.roletag.front{background:#e7f4ec;color:#1f7a45}
+  .banner{background:#fdf3e2;border:1px solid #f0d9ac;color:#8a5a12;border-radius:12px;padding:11px 15px;font-size:13px;margin-bottom:16px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+  /* Table */
+  .tbl-wrap{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:8px 10px 4px;overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:700;position:sticky;top:0;background:#fff}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  tbody tr:hover{background:var(--panel2)}
+  select,td input[type=text]{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;font-family:inherit;background:#fff}
+  .pill{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+  .search{flex:1;min-width:180px;max-width:320px}
+  .search input{padding:9px 12px}
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(20,40,28,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+  .modal{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:24px;max-width:420px;width:100%}
+  .modal h3{margin:0 0 14px;font-size:17px}
+  .checks{font-size:12px;margin:8px 0 4px;color:var(--muted)}
+  .checks span{display:inline-block;margin-right:10px}
+  .ok{color:var(--accent-d);font-weight:700}.no{color:var(--bad)}
+  .modal .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--accent-d);color:#fff;padding:11px 20px;border-radius:12px;font-size:13.5px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25);opacity:0;transition:opacity .25s;z-index:60}
+  .toast.show{opacity:1}
+  .muted{color:var(--muted);font-size:12px}
+  @media(max-width:600px){td input[type=text]{min-width:120px}}
+  /* View tabs */
+  .viewtabs{display:flex;gap:8px;margin-bottom:16px}
+  .vtab{padding:10px 18px;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:650;font-size:13.5px;cursor:pointer;box-shadow:var(--shadow)}
+  .vtab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  /* KPIs */
+  .grid{display:grid;gap:14px}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:16px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px 18px;box-shadow:var(--shadow)}
+  .kpi .big{font-size:29px;font-weight:800;line-height:1}
+  .kpi .lbl{font-size:12.5px;color:var(--txt);font-weight:600;margin-top:7px}
+  .kpi .s2{font-size:11.5px;color:var(--muted);margin-top:4px}
+  /* Charts */
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .chart-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+  .chart-card.wide{grid-column:1 / -1}
+  .chart-card h3{margin:0 0 14px;font-size:15px}
+  @media(max-width:760px){.charts{grid-template-columns:1fr}}
+  .donut{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .donut svg{flex:none}
+  .d-num{font-size:26px;font-weight:800;fill:var(--txt)}
+  .d-lbl{font-size:10px;fill:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .legend2{font-size:12.5px;display:flex;flex-direction:column;gap:6px;min-width:150px}
+  .legend2 i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:8px;vertical-align:middle}
+  .legend2 b{font-variant-numeric:tabular-nums}
+  .bars{display:flex;flex-direction:column;gap:9px}
+  .brow{display:grid;grid-template-columns:210px 1fr 185px;align-items:center;gap:12px}
+  .brow .blabel{font-size:13px;color:var(--txt)}
+  .btrack{background:#eef3ef;border-radius:6px;height:22px;overflow:hidden}
+  .bfill{height:100%;border-radius:6px;box-shadow:inset 0 -1px 2px rgba(0,0,0,.08)}
+  .bval{text-align:right;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--txt)}
+  @media(max-width:560px){.brow{grid-template-columns:130px 1fr 120px}.bval{font-size:11px}}
+  /* Große Aktions-Buttons (PDF/Teilen) */
+  .ov-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .btn-big{flex:1;min-width:180px;padding:16px;border:none;border-radius:14px;font-size:15.5px;font-weight:750;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;box-shadow:0 3px 12px rgba(31,122,69,.28)}
+  .btn-big:active{transform:translateY(1px)}
+  .btn-big.alt{background:#fff;color:var(--accent-d);border:1.5px solid var(--accent)}
+  /* Anklickbare Kennzahlen */
+  .kpi{cursor:pointer;transition:transform .12s,box-shadow .12s}
+  .kpi:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(20,50,30,.12)}
+  .kpi .kpi-go{font-size:11px;font-weight:700;color:var(--accent-d);margin-top:8px;opacity:0;transition:opacity .12s}
+  .kpi:hover .kpi-go{opacity:1}
+  /* Anklickbare Balkenzeilen */
+  .brow.clk{cursor:pointer;border-radius:9px;padding:4px 6px;margin:0 -6px;transition:background .12s}
+  .brow.clk:hover{background:var(--panel2)}
+  .dotc{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:8px;vertical-align:middle}
+  /* Goal bar */
+  .gtrack{height:28px;border-radius:9px;overflow:hidden;display:flex;position:relative;border:1px solid var(--line);background:#eef3ef}
+  .gseg{height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.15)}
+  .gmark{position:absolute;top:-6px;bottom:-6px;width:2.5px;background:#1f2b24;border-radius:2px}
+  .gmark span{position:absolute;top:-21px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;white-space:nowrap}
+  .glegend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;font-size:12px;color:var(--muted)}
+  .glegend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:middle}
+  /* Filterleiste */
+  .filterbar{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:12px}
+  .filterbar .flabel{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-right:2px}
+  .fchip{padding:6px 12px;border-radius:20px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:12px;font-weight:650;cursor:pointer;box-shadow:var(--shadow)}
+  .fchip:hover{border-color:var(--accent)}
+  .fchip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .fchip .n{opacity:.75;font-weight:600}
+  .selbar{background:linear-gradient(135deg,#f2f9f4,#eaf5ee);border:1px solid #d3e8db;border-radius:12px;padding:12px 16px;margin-bottom:12px;font-size:13.5px;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center}
+  .selbar b{color:var(--accent-d)}
+  .selbar .miss{color:#8a5a12}
+</style>
+</head>
+<body>
+
+<!-- ==================== LOGIN ==================== -->
+<div id="login" class="login">
+  <div class="logo">🔒</div>
+  <h1>Kundenstatus</h1>
+  <div class="sub">Anmeldung Frontbereich</div>
+
+  <div class="field" style="margin-top:22px">
+    <label>Passwort (Gesamt- oder Tabellen-Passwort)</label>
+    <div class="pinrow">
+      <input type="password" id="in-front" placeholder="Passwort" autocomplete="off" onkeydown="if(event.key==='Enter')doFront()">
+      <button class="toggle" onclick="tog('in-front',this)">zeigen</button>
+    </div>
+  </div>
+  <button class="btn" onclick="doFront()">Anmelden</button>
+
+  <div class="err" id="login-err"></div>
+  <div class="hint" id="defaults-hint"></div>
+  <div class="muted" style="font-size:11.5px;margin-top:10px">🔧 Der Admin-Bereich wird erst nach der Anmeldung im Frontbereich freigeschaltet.</div>
+</div>
+
+<!-- ==================== APP ==================== -->
+<div id="app" class="wrap hidden">
+  <div class="apphead">
+    <div>
+      <h1 style="display:flex;align-items:center;gap:10px">GreenBESS Kundenstatus <span class="roletag" id="roletag"></span></h1>
+      <div class="sub" id="app-sub"></div>
+    </div>
+    <div class="actions" id="app-actions"></div>
+  </div>
+
+  <div id="admin-banner" class="banner hidden">
+    <span>⚠️ Es sind noch Standard-Zugänge aktiv. Bitte PIN und Passwörter ändern.</span>
+    <button class="btn sec" onclick="openAccessModal()">Jetzt ändern</button>
+  </div>
+
+  <div class="viewtabs">
+    <button class="vtab active" id="vt-ov" onclick="setView('ov')">📊 Übersicht &amp; Statistik</button>
+    <button class="vtab" id="vt-list" onclick="setView('list')">📋 Kundenliste</button>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+      <label class="muted" style="font-weight:600;font-size:12.5px">Tabelle:</label>
+      <select id="src-select" onchange="onSource(this.value)" style="width:auto;padding:9px 12px;font-weight:600"></select>
+    </div>
+  </div>
+
+  <!-- Übersicht (einfach) -->
+  <div id="view-ov">
+    <div class="ov-actions">
+      <button class="btn-big" onclick="exportPDF()">📄 PDF erstellen</button>
+      <button class="btn-big alt" onclick="sharePDF()">📤 Teilen</button>
+    </div>
+    <div class="grid kpis" id="ov-kpis"></div>
+    <div class="chart-card wide"><h3>Status auf einen Blick</h3><div id="ch-statusbars"></div></div>
+    <div class="chart-card wide"><h3>Fortschritt zum 90 %-Ziel (bis 31.08.2026)</h3><div id="ch-goal"></div></div>
+  </div>
+
+  <!-- Kundenliste -->
+  <div id="view-list" class="hidden">
+    <div class="filterbar" id="filter-status"></div>
+    <div class="filterbar" id="filter-amount"></div>
+    <div class="selbar" id="sel-summary"></div>
+    <div class="toolbar">
+      <div class="search"><input type="text" id="search" placeholder="🔍 Suche (Name, Status, Bemerkung)…" oninput="renderTable()"></div>
+      <span class="muted" id="count-info"></span>
+    </div>
+    <div class="tbl-wrap">
+      <table id="ctbl">
+        <thead><tr>
+          <th>Name</th><th>Projekt</th><th class="num">Investition</th><th style="min-width:190px">Status</th><th style="min-width:220px">Bemerkung</th><th>Tabelle</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="muted" style="margin-top:10px" id="foot-note"></div>
+  </div>
+</div>
+
+<div id="modal-root"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Konfiguration ---------- */
+/* Farben in Familien: Grün=abgeschlossen, Blau=Bankprozess, Orange=Aktion nötig, Rot=abgelehnt.
+   Innerhalb einer Familie nur abgestuft – so sind Zahl-Farbe (Gruppe) und Balken (Status) zuordenbar. */
+const STATUS = {
+  bestaetigt:{label:"Finanzierung bestätigt",color:"#1f7a45"},   // grün dunkel
+  eigen:{label:"Eigene Finanzierung",color:"#45b872"},           // grün hell
+  eingereicht:{label:"Finanzierung eingereicht",color:"#2f6fb0"},// blau dunkel
+  pruefung:{label:"In Prüfung",color:"#7aa9d8"},                 // blau hell
+  vollstaendig:{label:"Unterlagen vollständig",color:"#e6a53f"}, // orange hell
+  nachforderung:{label:"Unterlagen Nachforderung",color:"#c2781a"},// orange dunkel
+  mail:{label:"Mail versendet",color:"#f2c987"},                 // orange sehr hell
+  abgelehnt:{label:"Finanzierung abgelehnt",color:"#d15238"},    // rot
+};
+const DEFAULT_PIN="246810";
+const DEFAULT_PW="Bankshop123+++";
+const DEFAULT_TPW={"Übersicht Finanzierung":"Intern#2026","GreenBESS Investoren":"Green#2026","EnergyInvest Solutions":"Energy#2026"};
+const LS_KEY="gb_kundenstatus_v5";
+
+const SEED=[
+  ["Lukas Bayer","Iserkraft 2",214200,"nachforderung","Hauptliste","BWA, JA 2024, Schufa, DVV"],
+  ["Andreas Bohnstedt","Iserkraft 2",214200,"mail","Hauptliste",""],
+  ["Corinne Bonhomme","Iserkraft 1",204000,"vollstaendig","Hauptliste",""],
+  ["Annette Brehme-Wieland","Iserkraft 1",204000,"pruefung","Hauptliste",""],
+  ["Alfons Brümmer","Iserkraft 2",214200,"eingereicht","Hauptliste",""],
+  ["Markus Brüns","Iserkraft 2",214200,"pruefung","Hauptliste",""],
+  ["Markus Böhme","Iserkraft 2",428400,"nachforderung","Hauptliste",""],
+  ["Udo Böing","Iserkraft 2",214200,"vollstaendig","Hauptliste",""],
+  ["Matthias Börger","Iserkraft 1",204000,"abgelehnt","Hauptliste","20.07.2026"],
+  ["Bettina Dold","Iserkraft 2",214200,"nachforderung","Hauptliste",""],
+  ["Michael Duttenhöfer","Iserkraft 2",214200,"nachforderung","Hauptliste",""],
+  ["Christian Fangmann","Iserkraft 2",214200,"pruefung","Hauptliste","17.06.2026"],
+  ["Annkatrin Fiedler","Iserkraft 2",428400,"pruefung","Hauptliste",""],
+  ["Thilo Focke","Iserkraft 2",204000,"bestaetigt","Hauptliste",""],
+  ["Oliver Gitschier","Iserkraft 1",204000,"vollstaendig","Hauptliste","PA, GN, JA, BWA, Schufa, DVV"],
+  ["Robert Goedde-Menke","Iserkraft 1",214200,"eigen","Hauptliste","finanziert über Hausbank"],
+  ["Torsten Heinemann","Iserkraft 1",204000,"bestaetigt","Hauptliste","27.05.2026"],
+  ["Dominik Held","Iserkraft 2",204000,"eingereicht","Hauptliste","27.05.2026"],
+  ["Alexander Hellwig","Iserkraft 2",428400,"vollstaendig","Hauptliste",""],
+  ["Stephan Hermanutz","Iserkraft 2",204000,"eingereicht","Hauptliste","27.05.2026"],
+  ["Daniel Jordan","Iserkraft 2",214200,"eingereicht","Hauptliste","17.06.2026"],
+  ["Markus Klein","Iserkraft 2",214200,"eingereicht","Hauptliste",""],
+  ["Denis Kohl","Iserkraft 2",204000,"eingereicht","Hauptliste","27.05.2026"],
+  ["Holger Kulemeyer","Iserkraft 1",408000,"vollstaendig","Hauptliste",""],
+  ["Robert Levenhagen","Iserkraft 2",428400,"nachforderung","Hauptliste","Schufa-CoBa, DVV, Mietverträge, Immo-Aufstellung"],
+  ["Andreas Machhof","Iserkraft 1",408000,"nachforderung","Hauptliste",""],
+  ["Eduard Müller","Iserkraft 1",408000,"nachforderung","Hauptliste",""],
+  ["Christian Müller","Iserkraft 1",204000,"nachforderung","Hauptliste",""],
+  ["Linda Nepp","Iserkraft 1",408000,"eingereicht","Hauptliste",""],
+  ["Marco Nepp","Iserkraft 1",408000,"eingereicht","Hauptliste",""],
+  ["Jörg Pelz","Iserkraft 2",204000,"pruefung","Hauptliste",""],
+  ["Florian Raeder","Iserkraft 1",408000,"nachforderung","Hauptliste",""],
+  ["Frank Robotka","Iserkraft 1",204000,"nachforderung","Hauptliste","akt. BWA, EkSt-Bescheid, Schufa-CoBa, DVV"],
+  ["Daniel Rüling","Iserkraft 1",204000,"vollstaendig","Hauptliste",""],
+  ["Timo Schleßelmann","Iserkraft 1",408000,"eigen","Hauptliste","eigene Finanzierung"],
+  ["Daniel Schmid","Iserkraft 2",214200,"eingereicht","Hauptliste",""],
+  ["Tobias Schramm","Iserkraft 2",204000,"vollstaendig","Hauptliste","Dublette prüfen"],
+  ["Silke Schramm","Iserkraft 2",204000,"mail","Hauptliste","Dublette prüfen"],
+  ["Patrick Stellmach","Iserkraft 2",214200,"vollstaendig","Hauptliste",""],
+  ["Gerrit von Wieding","Iserkraft 1",204000,"pruefung","Hauptliste",""],
+  ["Friedhelm von Wieding","Iserkraft 1",204000,"pruefung","Hauptliste",""],
+  ["Andreas Rathgeb","Iserkraft 1",408000,"nachforderung","Hauptliste","PA beide, GN, EkSt-Bescheid, Schufa, DVV"],
+  ["Erik Hauser (HAMO)","Iserkraft 2",428400,"nachforderung","Hauptliste","3× Hauser – prüfen"],
+  ["Erik Hauser (HAMO II)","Iserkraft 2",428400,"nachforderung","Hauptliste","3× Hauser – prüfen"],
+  ["Christoph Epple","Iserkraft 2",214200,"eingereicht","Hauptliste",""],
+  ["Florian Ziegler","Iserkraft 2",214200,"pruefung","Hauptliste",""],
+  ["Thomas Lix","Iserkraft 2",214200,"mail","Hauptliste",""],
+  ["Robert Goedde-Menke (2)","Iserkraft 2",214200,"eigen","Hauptliste","Dublette prüfen · Hausbank"],
+  ["Marco Nepp (2)","Iserkraft 1",408000,"eingereicht","Hauptliste","Dublette prüfen"],
+  ["Boris Quiotek (BQ&SP)","Iserkraft",408000,"eingereicht","Hauptliste","Dublette prüfen"],
+  ["Tobias Schramm (2)","Iserkraft 1",204000,"vollstaendig","Hauptliste","Dublette prüfen"],
+  ["Silke Schramm (2)","Iserkraft 1",204000,"vollstaendig","Hauptliste","Dublette prüfen"],
+  ["Marcus Dietzen","Iserkraft 2",428400,"nachforderung","Hauptliste",""],
+  ["Boris Quiotek (BQ&AQ)","Iserkraft 2",428000,"eingereicht","Hauptliste","Dublette prüfen"],
+  ["Tom Notermans","Iserkraft 2",214200,"pruefung","Hauptliste",""],
+  ["Emmanuel Bruderek","Iserkraft 2",214200,"mail","Hauptliste","23.07.2026"],
+  ["Maria Majunke","Iserkraft 2",214200,"pruefung","Vermittler","Marvin Großkrüger"],
+  ["Olaf Rubin","Iserkraft",204000,"vollstaendig","Vermittler","Marvin Großkrüger · 06.06."],
+  ["Tim Strübing","Iserkraft 2",214200,"mail","Vermittler","Ingo Aldag"],
+  ["Dirk Schirmacher","Iserkraft 2",214200,"pruefung","Vermittler","Ingo Aldag"],
+  ["Alexander Untersperger","Iserkraft 2",428400,"eingereicht","Vermittler","Marvin Großkrüger · 27.05."],
+  ["Robert Hornsteiner","Iserkraft 2",214200,"eingereicht","Vermittler","IAF"],
+  ["Ralph Gievert","Iserkraft 2",214200,"nachforderung","Vermittler","VentaCom · akt. BWA, JA 2024, Schufa, DVV"],
+  ["Jens Weichelt","Iserkraft 2",428400,"nachforderung","Vermittler","VentaCom · DVV"],
+  ["Johannes Smola","Iserkraft 2",214200,"eingereicht","Vermittler","Marvin Großkrüger · 08.07."],
+  ["Steffen Stundzig","Iserkraft 2",214200,"pruefung","Vermittler","Marvin Großkrüger"],
+  ["Christian Linke","Iserkraft 2",428400,"eingereicht","Vermittler","Marvin Großkrüger · 23.07."],
+];
+
+/* Vermittler-Tabelle: EnergyInvest Solutions – Globalfinanzierung */
+const SEED_ENERGY=[
+  ["Jens Albert","Iserkraft",204000,"eingereicht","GbR","01.07.2026"],
+  ["Paul Clavijo","Iserkraft 2",214200,"pruefung","GbR",""],
+  ["Robin d'Alquen","Iserkraft",204000,"vollstaendig","Einzelunternehmen","08.06.2026"],
+  ["Georg Dold-Jacobi","Iserkraft 2",428400,"eingereicht","GbR","30.05.2026"],
+  ["Dominik Fürste","Iserkraft",408000,"pruefung","Einzelunternehmen",""],
+  ["Hendrik Golkowski","Iserkraft",204000,"eingereicht","Einzelunternehmen","30.05.2026"],
+  ["Klaus Knippschild","Iserkraft",408000,"nachforderung","GbR",""],
+  ["Roman Kremers","Iserkraft",204000,"eingereicht","Einzelunternehmen","30.05.2026"],
+  ["Julia Menzel-Härpfer","Iserkraft",408000,"pruefung","Einzelunternehmen",""],
+  ["Oliver Moch","Iserkraft",204000,"pruefung","GbR",""],
+  ["Martin Moser","Iserkraft",204000,"vollstaendig","Einzelunternehmen","19.06.2026"],
+  ["Safwan Omran","Iserkraft 2",214200,"eingereicht","Einzelunternehmen","30.05.2026"],
+  ["Markus Riegelein","Iserkraft 2",428400,"eingereicht","Einzelunternehmen","27.05.2026"],
+  ["Silas Sachs","Iserkraft",204000,"nachforderung","Einzelunternehmen","Schufa-CoBa und DVV · 09.06.2026"],
+  ["Martin Seitz","Iserkraft",408000,"pruefung","Einzelunternehmen",""],
+  ["Silvia Seitz","Iserkraft",408000,"vollstaendig","Einzelunternehmen",""],
+  ["Andreas Staubi","Iserkraft",204000,"eingereicht","GbR","17.06.2026"],
+  ["Burkhard Waldeck","Iserkraft",204000,"eingereicht","Einzelunternehmen","17.06.2026"],
+  ["Yannick Wille","Iserkraft 2",214200,"vollstaendig","Einzelunternehmen","Schufa-CoBa und DVV (Erinnerung) · 17.06.2026"],
+  ["Rico Wittke","Iserkraft",204000,"eingereicht","GbR","30.05.2026"],
+  ["Rainer Ziegler","Iserkraft",204000,"eingereicht","Einzelunternehmen","30.05.2026"],
+  ["Michael Hess","Iserkraft",408000,"vollstaendig","GbR","08.06.2026"],
+  ["Eva Daniela Schmidt","Iserkraft 2",214200,"pruefung","Einzelunternehmen","01.06.2026"],
+  ["Michael Härtl","Iserkraft 2",428400,"nachforderung","Einzelunternehmen",""],
+  ["Jens Albert (2)","Iserkraft",204000,"eingereicht","GbR","01.07.2026 · Dublette prüfen"],
+  ["Gerrit Hofemeister","Iserkraft 2",214200,"pruefung","Einzelunternehmen","02.07.2026"],
+  ["Rüdiger Fricke","Iserkraft 2",214200,"eingereicht","Einzelunternehmen","20.07.2026"],
+  ["Agnieszka Fürste","Iserkraft 2",428400,"mail","Einzelunternehmen",""],
+];
+
+/* Definition der Tabellen/Quellen – weitere Vermittler-Tabellen hier ergänzen.
+   Die GreenBESS-Daten (SEED) werden nach ihrer Herkunft in zwei Tabellen geteilt. */
+const SEED_HAUPT=SEED.filter(r=>r[4]==="Hauptliste");   // Übersicht Finanzierung (intern)
+const SEED_VERM =SEED.filter(r=>r[4]==="Vermittler");   // GreenBESS Vermittler-Liste
+const TABELLEN=[
+  {name:"Übersicht Finanzierung", rows:SEED_HAUPT},
+  {name:"GreenBESS Investoren", rows:SEED_VERM},
+  {name:"EnergyInvest Solutions", rows:SEED_ENERGY},
+];
+
+/* ---------- State / Persistenz ---------- */
+let state=load();
+function defaultCustomers(){
+  let id=0;const out=[];
+  TABELLEN.forEach(t=>t.rows.forEach(r=>out.push({id:id++,src:t.name,name:r[0],projekt:r[1],betrag:r[2],status:r[3],quelle:r[4],bemerkung:r[5]})));
+  return out;
+}
+function load(){
+  try{const s=JSON.parse(localStorage.getItem(LS_KEY));if(s&&s.customers){if(!s.tablePw)s.tablePw={...DEFAULT_TPW};return s;}}catch(e){}
+  return {pin:DEFAULT_PIN,pw:DEFAULT_PW,tablePw:{...DEFAULT_TPW},customers:defaultCustomers()};
+}
+function sourceList(){return [...new Set(state.customers.map(c=>c.src||"GreenBESS"))];}
+let curSource="__all__",locked=null,fStatus=null,fAmount=null,fGroup=null,fGroups=null;
+function currentCustomers(){return curSource==="__all__"?state.customers:state.customers.filter(c=>(c.src||"GreenBESS")===curSource);}
+function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(state));}catch(e){toast("Speichern nicht möglich (Browser-Einstellung).");}}
+const isDefault=()=>state.pin===DEFAULT_PIN||state.pw===DEFAULT_PW||Object.keys(state.tablePw||{}).some(k=>state.tablePw[k]===DEFAULT_TPW[k]);
+
+/* ---------- Login ---------- */
+let role=null;
+function tog(id,btn){const el=document.getElementById(id);const p=el.type==="password";el.type=p?"text":"password";btn.textContent=p?"verbergen":"zeigen";}
+function doFront(){
+  const v=document.getElementById("in-front").value;
+  if(v===state.pw){role="front";locked=null;curSource="__all__";openApp();return;}
+  const tbl=Object.keys(state.tablePw||{}).find(k=>state.tablePw[k]===v);
+  if(tbl){role="front";locked=tbl;curSource=tbl;openApp();return;}
+  err("Falsches Passwort.");
+}
+/* Admin nur aus dem Frontbereich heraus (nach Front-Login) */
+function promptAdmin(){
+  document.getElementById("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">
+    <h3>🔧 Admin-Modus freischalten</h3>
+    <div class="field"><label>Admin-PIN (6 Ziffern)</label>
+      <div class="pinrow"><input type="password" id="adm-pin" inputmode="numeric" maxlength="6" placeholder="••••••" onkeydown="if(event.key==='Enter')doElevate()">
+      <button class="toggle" onclick="tog('adm-pin',this)">zeigen</button></div></div>
+    <div class="err" id="adm-err"></div>
+    <div class="row"><button class="btn sec" onclick="closeModal()">Abbrechen</button>
+    <button class="btn" style="width:auto" onclick="doElevate()">Freischalten</button></div>
+  </div></div>`;
+  setTimeout(()=>{const e=document.getElementById("adm-pin");if(e)e.focus();},60);
+}
+function doElevate(){
+  const v=document.getElementById("adm-pin").value;
+  if(v===state.pin){role="admin";locked=null;closeModal();openApp();toast("Admin-Modus aktiv");}
+  else document.getElementById("adm-err").textContent="Falsche PIN.";
+}
+function err(t){document.getElementById("login-err").textContent=t;}
+function showDefaultsHint(){
+  // Passwörter werden aus Sicherheitsgründen NICHT auf dem Login-Bildschirm angezeigt.
+  const el=document.getElementById("defaults-hint");
+  el.innerHTML="";el.classList.add("hidden");
+}
+
+/* ---------- App ---------- */
+function openApp(){
+  document.getElementById("login").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  const adm=role==="admin";
+  document.getElementById("roletag").textContent=adm?"Admin":"Frontbereich";
+  document.getElementById("roletag").className="roletag "+(adm?"adm":"front");
+  document.getElementById("app-sub").textContent=adm?"Vollzugriff: Status & Bemerkungen bearbeiten, Zugänge verwalten, PDF erzeugen.":"Nur-Lese-Ansicht der Kundendaten.";
+  document.getElementById("admin-banner").classList.toggle("hidden",!(adm&&isDefault()));
+  buildActions(adm);
+  renderSourceSelect();
+  renderFilterBar();
+  renderTable();
+  renderOverview();
+  setView("ov");
+}
+function renderFilterBar(){
+  const cs=currentCustomers();
+  const cnt={};cs.forEach(c=>cnt[c.status]=(cnt[c.status]||0)+1);
+  let sh=`<span class="flabel">Status:</span><button class="fchip ${(!fStatus&&!fGroup&&!fGroups)?'active':''}" onclick="setFStatus(null)">Alle <span class="n">(${cs.length})</span></button>`;
+  STORDER.forEach(k=>{if(!cnt[k])return;sh+=`<button class="fchip ${fStatus===k?'active':''}" onclick="setFStatus('${k}')"><span style="color:${fStatus===k?'#fff':STATUS[k].color}">●</span> ${STATUS[k].label} <span class="n">(${cnt[k]})</span></button>`;});
+  document.getElementById("filter-status").innerHTML=sh;
+  const amounts=[...new Set(cs.map(c=>c.betrag))].sort((a,b)=>a-b);
+  let ah=`<span class="flabel">Investition:</span><button class="fchip ${!fAmount?'active':''}" onclick="setFAmount(null)">Alle</button>`;
+  amounts.forEach(a=>{const n=cs.filter(c=>c.betrag===a).length;ah+=`<button class="fchip ${fAmount===a?'active':''}" onclick="setFAmount(${a})">${fmtEur(a)} <span class="n">(${n})</span></button>`;});
+  document.getElementById("filter-amount").innerHTML=ah;
+}
+function setFStatus(k){fStatus=k;fGroup=null;fGroups=null;renderFilterBar();renderTable();}
+function setFAmount(a){fAmount=a;renderFilterBar();renderTable();}
+/* Klick auf Kennzahl oder Balken -> gefilterte Kundenliste sofort öffnen */
+function jumpList(kind,val){
+  fStatus=null;fGroup=null;fGroups=null;fAmount=null;
+  if(kind==="status")fStatus=val;
+  else if(kind==="group")fGroup=val;
+  else if(kind==="groups")fGroups=val;
+  setView("list");renderFilterBar();renderTable();
+  try{window.scrollTo({top:0,behavior:"smooth"});}catch(e){}
+}
+function renderSourceSelect(){
+  const sel=document.getElementById("src-select");
+  if(locked){
+    sel.innerHTML=`<option value="${locked}">${locked} (${state.customers.filter(c=>(c.src||"GreenBESS")===locked).length})</option>`;
+    sel.value=locked;sel.disabled=true;sel.title="Zugang auf diese Tabelle beschränkt";return;
+  }
+  sel.disabled=false;sel.title="";
+  const srcs=sourceList();
+  const opts=[`<option value="__all__">Alle Tabellen (${state.customers.length})</option>`]
+    .concat(srcs.map(s=>{const n=state.customers.filter(c=>(c.src||"GreenBESS")===s).length;return `<option value="${s}">${s} (${n})</option>`;}));
+  sel.innerHTML=opts.join("");sel.value=curSource;
+}
+function onSource(v){curSource=v;fStatus=null;fAmount=null;fGroup=null;fGroups=null;renderFilterBar();renderTable();renderOverview();}
+let curView="ov";
+function setView(v){curView=v;
+  document.getElementById("view-ov").classList.toggle("hidden",v!=="ov");
+  document.getElementById("view-list").classList.toggle("hidden",v!=="list");
+  document.getElementById("vt-ov").classList.toggle("active",v==="ov");
+  document.getElementById("vt-list").classList.toggle("active",v==="list");
+}
+function buildActions(adm){
+  const a=document.getElementById("app-actions");
+  let h='<button class="btn sec" onclick="exportPDF()">📄 PDF erstellen</button>';
+  h+=' <button class="btn sec" onclick="sharePDF()">📤 Teilen</button>';
+  if(adm){
+    h+=' <button class="btn sec" onclick="openAccessModal()">🔐 Zugänge verwalten</button>';
+    h+=' <button class="btn sec" onclick="backup()">💾 Sichern</button>';
+    h+=' <button class="btn sec" onclick="document.getElementById(\'imp\').click()">📂 Laden</button>';
+    h+='<input id="imp" type="file" accept="application/json" class="hidden" onchange="restore(event)">';
+  }else{
+    h+=' <button class="btn sec" onclick="promptAdmin()">🔧 Admin-Modus</button>';
+  }
+  h+=' <button class="btn sec" onclick="logout()">Abmelden</button>';
+  a.innerHTML=h;
+}
+function logout(){role=null;locked=null;curSource="__all__";fStatus=null;fAmount=null;fGroup=null;fGroups=null;document.getElementById("app").classList.add("hidden");document.getElementById("login").classList.remove("hidden");document.getElementById("in-front").value="";showDefaultsHint();}
+
+const fmtEur=n=>n.toLocaleString("de-DE")+" €";
+function renderTable(){
+  const adm=role==="admin";
+  const q=(document.getElementById("search").value||"").toLowerCase();
+  const base=currentCustomers();
+  const rows=base.filter(c=>{
+    if(fStatus&&c.status!==fStatus)return false;
+    if(fGroup&&GROUP_OF[c.status]!==fGroup)return false;
+    if(fGroups&&!fGroups.includes(GROUP_OF[c.status]))return false;
+    if(fAmount&&c.betrag!==fAmount)return false;
+    if(q&&![c.name,STATUS[c.status].label,c.bemerkung,c.projekt,c.src].join(" ").toLowerCase().includes(q))return false;
+    return true;
+  });
+  updateSelSummary(rows);
+  const tb=document.querySelector("#ctbl tbody");
+  tb.innerHTML=rows.map(c=>{
+    const s=STATUS[c.status];
+    const statusCell=adm
+      ? `<select onchange="upd(${c.id},'status',this.value)">`+Object.keys(STATUS).map(k=>`<option value="${k}" ${k===c.status?"selected":""}>${STATUS[k].label}</option>`).join("")+`</select>`
+      : `<span class="pill" style="background:${s.color}1f;color:${s.color};border:1px solid ${s.color}44">${s.label}</span>`;
+    const bemCell=adm
+      ? `<input type="text" value="${(c.bemerkung||"").replace(/"/g,'&quot;')}" placeholder="Bemerkung…" onchange="upd(${c.id},'bemerkung',this.value)">`
+      : (c.bemerkung?`<span>${esc(c.bemerkung)}</span>`:`<span class="muted">–</span>`);
+    return `<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.projekt)}</td><td class="num">${fmtEur(c.betrag)}</td><td>${statusCell}</td><td>${bemCell}</td><td class="muted">${esc(c.src||c.quelle)}</td></tr>`;
+  }).join("");
+  document.getElementById("count-info").textContent=rows.length+" von "+base.length+" Kunden"+(curSource!=="__all__"?" · "+curSource:"");
+  document.getElementById("foot-note").textContent=adm?"Änderungen werden automatisch in diesem Browser gespeichert. Für Backup/Übertragung die Funktion Sichern nutzen.":"Vertraulich – nur für den internen Frontbereich.";
+}
+function updateSelSummary(rows){
+  const el=document.getElementById("sel-summary");
+  const vol=rows.reduce((a,c)=>a+c.betrag,0);
+  const active=fStatus||fAmount||fGroup||fGroups;
+  const need=rows.filter(c=>["nachforderung","vollstaendig","mail"].includes(c.status));
+  const missing=rows.filter(c=>c.status==="nachforderung"&&c.bemerkung).map(c=>c.name+": "+c.bemerkung);
+  const GLBL={done:"Abgeschlossen",bank:"Im Bankprozess",need:"Aktion nötig",lost:"Abgelehnt"};
+  let h=`<span>Auswahl: <b>${rows.length}</b> Kunden</span><span>Volumen: <b>${fmtEur(vol)}</b></span>`;
+  if(fStatus)h+=`<span>Status: <b>${STATUS[fStatus].label}</b></span>`;
+  if(fGroup)h+=`<span>Gruppe: <b>${GLBL[fGroup]}</b></span>`;
+  if(fGroups)h+=`<span>Auswahl: <b>Umgesetzt (im Bankprozess + abgeschlossen)</b></span>`;
+  if(fAmount)h+=`<span>Investition: <b>${fmtEur(fAmount)}</b></span>`;
+  if(need.length)h+=`<span class="miss">Aktion nötig: <b>${need.length}</b></span>`;
+  if(missing.length)h+=`<span class="miss">Fehlt u. a.: ${esc(missing.slice(0,3).join(" · "))}${missing.length>3?" …":""}</span>`;
+  el.style.display=active?"flex":"none";
+  el.innerHTML=h;
+}
+function esc(s){return (s||"").replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));}
+function upd(id,field,val){const c=state.customers.find(x=>x.id===id);if(!c)return;c[field]=val;save();if(field==="status"){renderFilterBar();renderTable();renderOverview();}toast("Gespeichert");}
+
+/* ---------- Analyse / Statistik ---------- */
+const GROUP_OF={bestaetigt:"done",eigen:"done",eingereicht:"bank",pruefung:"bank",vollstaendig:"need",nachforderung:"need",mail:"need",abgelehnt:"lost"};
+const GROUPS=[{k:"done",label:"Abgeschlossen",color:"#2f9e5f"},{k:"bank",label:"Im Bankprozess",color:"#3d78b0"},{k:"need",label:"Aktion nötig",color:"#d98a2b"},{k:"lost",label:"Abgelehnt",color:"#d15238"}];
+const PALETTE=["#2f9e5f","#3d78b0","#d98a2b","#6f7fd6","#159a9a","#b566b5","#d15238","#7c8a97"];
+const STORDER=["bestaetigt","eigen","eingereicht","pruefung","vollstaendig","nachforderung","mail","abgelehnt"];
+function stats(){
+  const cs=currentCustomers();const T=cs.length;
+  const byStatus={},volStatus={},byGroup={done:0,bank:0,need:0,lost:0},volGroup={done:0,bank:0,need:0,lost:0},byProj={},volProj={},byListe={},volListe={};
+  let totalVol=0;
+  cs.forEach(c=>{const g=GROUP_OF[c.status];
+    byStatus[c.status]=(byStatus[c.status]||0)+1;volStatus[c.status]=(volStatus[c.status]||0)+c.betrag;
+    byGroup[g]++;volGroup[g]+=c.betrag;
+    byProj[c.projekt]=(byProj[c.projekt]||0)+1;volProj[c.projekt]=(volProj[c.projekt]||0)+c.betrag;
+    byListe[c.quelle]=(byListe[c.quelle]||0)+1;volListe[c.quelle]=(volListe[c.quelle]||0)+c.betrag;
+    totalVol+=c.betrag;});
+  return {T,byStatus,volStatus,byGroup,volGroup,byProj,volProj,byListe,volListe,totalVol};
+}
+function donut(data,total,topTxt,botTxt){
+  const R=54,C=2*Math.PI*R;let off=0;
+  const segs=data.filter(d=>d.value>0).map(d=>{
+    const len=d.value/total*C;
+    const el=`<circle r="${R}" cx="70" cy="70" fill="none" stroke="${d.color}" stroke-width="19" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 70 70)"></circle>`;
+    off+=len;return el;}).join("");
+  const leg=data.filter(d=>d.value>0).map(d=>`<div><i style="background:${d.color}"></i>${d.label} <b>${d.value}</b> <span class="muted">(${Math.round(d.value/total*100)} %)</span></div>`).join("");
+  return `<div class="donut"><svg viewBox="0 0 140 140" width="150" height="150">${segs}<text x="70" y="67" text-anchor="middle" class="d-num">${topTxt}</text><text x="70" y="85" text-anchor="middle" class="d-lbl">${botTxt}</text></svg><div class="legend2">${leg}</div></div>`;
+}
+function bars(data,fmtFn){
+  const max=Math.max(...data.map(d=>d.value),1);
+  return `<div class="bars">`+data.filter(d=>d.value>0).map(d=>`<div class="brow"><div class="blabel">${d.label}</div><div class="btrack"><div class="bfill" style="width:${Math.max(d.value/max*100,2)}%;background:${d.color}"></div></div><div class="bval">${fmtFn(d.value)}</div></div>`).join("")+`</div>`;
+}
+function renderOverview(){
+  const s=stats();const T=s.T||1;
+  const umw=s.byGroup.done+s.byGroup.bank;const umwPct=Math.round(umw/T*100);
+  const goal=Math.ceil(T*0.9);
+  // KPIs
+  document.getElementById("ov-kpis").innerHTML=[
+    {big:s.T,lbl:"Kunden gesamt",s2:fmtEur(s.totalVol),j:"jumpList('all')"},
+    {big:s.byGroup.done,lbl:"Abgeschlossen",s2:Math.round(s.byGroup.done/T*100)+" % · "+fmtEur(s.volGroup.done),c:"#2f9e5f",j:"jumpList('group','done')"},
+    {big:s.byGroup.bank,lbl:"Im Bankprozess",s2:Math.round(s.byGroup.bank/T*100)+" % · "+fmtEur(s.volGroup.bank),c:"#3d78b0",j:"jumpList('group','bank')"},
+    {big:s.byGroup.need,lbl:"Aktion nötig",s2:Math.round(s.byGroup.need/T*100)+" % · "+fmtEur(s.volGroup.need),c:"#d98a2b",j:"jumpList('group','need')"},
+    {big:umwPct+" %",lbl:"Umgesetzt (Ziel 90 %)",s2:umw+" von "+s.T+" · noch "+Math.max(goal-umw,0)+" bis Ziel",c:"#1f7a45",j:"jumpList('groups',['done','bank'])"},
+  ].map(k=>`<div class="kpi" onclick="${k.j}" title="Zur Kundenliste"><div class="big" style="color:${k.c||'var(--txt)'}">${k.big}</div><div class="lbl">${k.lbl}</div><div class="s2">${k.s2}</div><div class="kpi-go">Liste ansehen ›</div></div>`).join("");
+  // Einfache Status-Balken: Anzahl + Volumen (anklickbar)
+  const dStatus=STORDER.filter(k=>s.byStatus[k]).map(k=>({key:k,label:STATUS[k].label,value:s.byStatus[k],vol:s.volStatus[k],color:STATUS[k].color}));
+  const maxC=Math.max(...dStatus.map(d=>d.value),1);
+  document.getElementById("ch-statusbars").innerHTML=`<div class="bars">`+dStatus.map(d=>`<div class="brow clk" onclick="jumpList('status','${d.key}')" title="Diese Kunden anzeigen"><div class="blabel"><span class="dotc" style="background:${d.color}"></span>${d.label}</div><div class="btrack"><div class="bfill" style="width:${Math.max(d.value/maxC*100,3)}%;background:${d.color}"></div></div><div class="bval">${d.value} · ${fmtEur(d.vol)}</div></div>`).join("")+`</div>`;
+  // Zielbalken
+  let off=0,segs="";
+  GROUPS.forEach(g=>{const v=s.byGroup[g.k];if(!v)return;const w=v/s.T*100;segs+=`<div class="gseg" style="width:${w}%;background:${g.color}">${v>2?v:""}</div>`;});
+  document.getElementById("ch-goal").innerHTML=`<div style="margin-bottom:20px;font-size:13.5px;color:var(--muted)">Umgesetzt = mind. bei der Bank eingereicht. Aktuell <b style="color:var(--accent-d)">${umw} von ${s.T} = ${umwPct} %</b>. Bis 90 % fehlen noch <b style="color:var(--warn)">${Math.max(goal-umw,0)}</b> Kunden.</div>
+    <div class="gtrack">${segs}<div class="gmark" style="left:90%"><span>90 %</span></div></div>
+    <div class="glegend">${GROUPS.map(g=>`<span><i style="background:${g.color}"></i>${g.label} (${s.byGroup[g.k]})</span>`).join("")}<span><i style="background:#1f2b24"></i>90 %-Ziellinie</span></div>`;
+}
+
+/* ---------- Passwörter ändern ---------- */
+function openPwModal(which){
+  const root=document.getElementById("modal-root");
+  const pinBlock=`<div class="field"><label>Neue Admin-PIN (genau 6 Ziffern)</label>
+    <input type="text" id="np-pin" inputmode="numeric" maxlength="6" placeholder="6 Ziffern" oninput="chkPin()"></div>
+    <div class="checks" id="pin-checks"></div>`;
+  const pwBlock=`<div class="field"><label>Neues Front-Passwort (min. 10 Zeichen)</label>
+    <div class="pinrow"><input type="password" id="np-pw" placeholder="Passwort" oninput="chkPw()">
+    <button class="toggle" onclick="tog('np-pw',this)">zeigen</button></div></div>
+    <div class="checks" id="pw-checks"></div>`;
+  let inner="";
+  if(which==="pin"||which==="both")inner+=pinBlock;
+  if(which==="pw"||which==="both")inner+=pwBlock;
+  root.innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">
+    <h3>${which==="pin"?"Admin-PIN ändern":which==="pw"?"Front-Passwort ändern":"Zugänge ändern"}</h3>
+    ${inner}
+    <div class="err" id="modal-err"></div>
+    <div class="row"><button class="btn sec" onclick="closeModal()">Abbrechen</button>
+    <button class="btn" style="width:auto" onclick="savePw('${which}')">Speichern</button></div>
+  </div></div>`;
+  if(document.getElementById("np-pin"))chkPin();
+  if(document.getElementById("np-pw"))chkPw();
+}
+function closeModal(){document.getElementById("modal-root").innerHTML="";}
+function chkPin(){const v=document.getElementById("np-pin").value;const ok=/^\d{6}$/.test(v);
+  document.getElementById("pin-checks").innerHTML=`<span class="${ok?'ok':'no'}">${ok?'✓':'○'} genau 6 Ziffern</span>`;return ok;}
+function pwRules(v){return{len:v.length>=10,up:/[A-Z]/.test(v),low:/[a-z]/.test(v),num:/\d/.test(v),spec:/[^A-Za-z0-9]/.test(v)};}
+function chkPw(){const v=document.getElementById("np-pw").value;const r=pwRules(v);
+  const c=(k,t)=>`<span class="${r[k]?'ok':'no'}">${r[k]?'✓':'○'} ${t}</span>`;
+  document.getElementById("pw-checks").innerHTML=c('len','min. 10 Zeichen')+c('up','Großbuchstabe')+c('low','Kleinbuchstabe')+c('num','Zahl')+c('spec','Sonderzeichen');
+  return Object.values(r).every(Boolean);}
+function savePw(which){
+  const e=document.getElementById("modal-err");e.textContent="";
+  if(which==="pin"||which==="both"){if(!chkPin()){e.textContent="PIN muss genau 6 Ziffern haben.";return;}}
+  if(which==="pw"||which==="both"){if(!chkPw()){e.textContent="Passwort erfüllt die Regeln nicht.";return;}}
+  if(which==="pin"||which==="both")state.pin=document.getElementById("np-pin").value;
+  if(which==="pw"||which==="both")state.pw=document.getElementById("np-pw").value;
+  save();closeModal();document.getElementById("admin-banner").classList.toggle("hidden",!isDefault());toast("Zugang aktualisiert");
+}
+
+/* ---------- Zugänge verwalten ---------- */
+function openAccessModal(){
+  const tps=Object.keys(state.tablePw||{});
+  const esc2=v=>(v||"").replace(/"/g,"&quot;");
+  const pwField=(id,label,val)=>`<div class="field"><label>${label}</label>
+    <div class="pinrow"><input type="password" id="${id}" value="${esc2(val)}" oninput="chkGeneric('${id}')">
+    <button class="toggle" onclick="tog('${id}',this)">zeigen</button></div>
+    <div class="checks" id="${id}-c"></div></div>`;
+  let inner=`<div class="field"><label>Admin-PIN (genau 6 Ziffern)</label>
+    <div class="pinrow"><input type="password" id="ac-pin" inputmode="numeric" maxlength="6" value="${esc2(state.pin)}" oninput="chkGeneric('ac-pin')">
+    <button class="toggle" onclick="tog('ac-pin',this)">zeigen</button></div>
+    <div class="checks" id="ac-pin-c"></div></div>`;
+  inner+=pwField("ac-pw","Gesamt-Passwort (Zugriff auf alle Tabellen)",state.pw);
+  inner+=`<div style="font-size:12px;font-weight:700;color:var(--muted);margin:6px 0 2px">Eigene Passwörter je Tabelle (Zugriff nur auf diese Tabelle):</div>`;
+  tps.forEach((t,i)=>inner+=pwField("ac-t"+i,t,state.tablePw[t]));
+  document.getElementById("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:470px;max-height:88vh;overflow:auto">
+    <h3>🔐 Zugänge verwalten</h3>
+    <div class="muted" style="font-size:12px;margin-bottom:12px">PIN = 6 Ziffern · Passwörter = min. 10 Zeichen mit Groß-, Kleinbuchstabe, Zahl und Sonderzeichen. Alle Passwörter müssen sich unterscheiden.</div>
+    ${inner}
+    <div class="err" id="ac-err"></div>
+    <div class="row"><button class="btn sec" onclick="closeModal()">Abbrechen</button>
+    <button class="btn" style="width:auto" onclick="saveAccess()">Speichern</button></div>
+  </div></div>`;
+  chkGeneric("ac-pin");chkGeneric("ac-pw");tps.forEach((t,i)=>chkGeneric("ac-t"+i));
+}
+function chkGeneric(id){
+  const el=document.getElementById(id);if(!el)return true;
+  const box=document.getElementById(id+"-c");const v=el.value;
+  if(id==="ac-pin"){const ok=/^\d{6}$/.test(v);if(box)box.innerHTML=`<span class="${ok?'ok':'no'}">${ok?'✓':'○'} genau 6 Ziffern</span>`;return ok;}
+  const r=pwRules(v);const c=(k,t)=>`<span class="${r[k]?'ok':'no'}">${r[k]?'✓':'○'} ${t}</span>`;
+  if(box)box.innerHTML=c("len","min. 10")+c("up","A")+c("low","a")+c("num","0-9")+c("spec","Sonderz.");
+  return Object.values(r).every(Boolean);
+}
+function saveAccess(){
+  const e=document.getElementById("ac-err");e.textContent="";
+  const tps=Object.keys(state.tablePw||{});
+  if(!chkGeneric("ac-pin")){e.textContent="Admin-PIN muss genau 6 Ziffern haben.";return;}
+  if(!chkGeneric("ac-pw")){e.textContent="Gesamt-Passwort erfüllt die Regeln nicht.";return;}
+  for(let i=0;i<tps.length;i++){if(!chkGeneric("ac-t"+i)){e.textContent="Passwort für „"+tps[i]+"“ erfüllt die Regeln nicht.";return;}}
+  const vals=[document.getElementById("ac-pw").value].concat(tps.map((t,i)=>document.getElementById("ac-t"+i).value));
+  if(new Set(vals).size!==vals.length){e.textContent="Die Passwörter müssen sich alle unterscheiden.";return;}
+  state.pin=document.getElementById("ac-pin").value;
+  state.pw=document.getElementById("ac-pw").value;
+  tps.forEach((t,i)=>state.tablePw[t]=document.getElementById("ac-t"+i).value);
+  save();closeModal();document.getElementById("admin-banner").classList.toggle("hidden",!isDefault());toast("Zugänge aktualisiert");
+}
+
+/* ---------- Backup / Restore ---------- */
+function backup(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download="GreenBESS_Kundenstatus_Backup.json";a.click();URL.revokeObjectURL(u);toast("Backup gespeichert");
+}
+function restore(ev){
+  const f=ev.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const s=JSON.parse(r.result);if(!s.customers)throw 0;if(!s.tablePw)s.tablePw={...DEFAULT_TPW};state=s;save();renderSourceSelect();renderFilterBar();renderTable();renderOverview();document.getElementById("admin-banner").classList.toggle("hidden",!isDefault());toast("Daten geladen");}catch(e){toast("Ungültige Datei");}};
+  r.readAsText(f);ev.target.value="";
+}
+
+/* ---------- PDF (passwortgeschützt) ---------- */
+function makePDF(){
+  if(!window.jspdf||!window.jspdf.jsPDF){toast("PDF-Bibliothek nicht geladen – Internetverbindung nötig.");return null;}
+  const { jsPDF }=window.jspdf;
+  const pw="Bankshop123!";   // einheitliches PDF-Passwort für alle Exporte
+  let doc;
+  try{
+    doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4",
+      encryption:{userPassword:pw,ownerPassword:pw+"#owner",userPermissions:["print"]}});
+  }catch(e){doc=new jsPDF({orientation:"landscape"});}
+  const srcLabel=curSource==="__all__"?"Alle Tabellen":curSource;
+  const cs=currentCustomers();
+  doc.setFontSize(16);doc.setTextColor(31,122,69);doc.text("GreenBESS – Kundenstatus & Auswertung",14,15);
+  doc.setFontSize(10);doc.setTextColor(31,122,69);doc.text("Tabelle: "+srcLabel,14,21);
+  doc.setFontSize(9);doc.setTextColor(90,90,90);
+  doc.text("Vertraulich · nur für den internen Gebrauch · erstellt "+new Date().toLocaleDateString("de-DE"),14,26.5);
+  // Auswertung (Zusammenfassung)
+  const s=stats();const T=s.T||1;const umw=s.byGroup.done+s.byGroup.bank;const umwPct=Math.round(umw/T*100);
+  const sumBody=GROUPS.map(g=>[g.label,String(s.byGroup[g.k]),Math.round(s.byGroup[g.k]/T*100)+" %",fmtEur(s.volGroup[g.k])]);
+  sumBody.push(["Gesamt",String(s.T),"100 %",fmtEur(s.totalVol)]);
+  doc.autoTable({
+    head:[["Auswertung nach Ampel-Gruppe","Anzahl","Anteil","Volumen"]],
+    body:sumBody,startY:31,styles:{fontSize:8.5,cellPadding:2},
+    headStyles:{fillColor:[31,122,69],textColor:255},
+    columnStyles:{1:{halign:"right"},2:{halign:"right"},3:{halign:"right"}},
+    didParseCell:d=>{if(d.row.index===sumBody.length-1&&d.section==='body'){d.cell.styles.fontStyle='bold';d.cell.styles.fillColor=[234,245,238];}}
+  });
+  doc.setFontSize(9);doc.setTextColor(60,60,60);
+  doc.text("Umgesetzt (mind. eingereicht): "+umw+" von "+s.T+" = "+umwPct+" %   |   Ziel 90 % bis 31.08.2026",14,doc.lastAutoTable.finalY+7);
+  // Detailtabelle
+  const withSrc=curSource==="__all__";
+  const head=withSrc?["Name","Projekt","Investition","Status","Bemerkung","Tabelle"]:["Name","Projekt","Investition","Status","Bemerkung"];
+  const body=cs.map(c=>{const base=[c.name,c.projekt,fmtEur(c.betrag),STATUS[c.status].label,c.bemerkung||""];if(withSrc)base.push(c.src||"");return base;});
+  doc.autoTable({
+    head:[head],
+    body:body,startY:doc.lastAutoTable.finalY+12,styles:{fontSize:8,cellPadding:2},
+    headStyles:{fillColor:[47,158,95],textColor:255},
+    alternateRowStyles:{fillColor:[240,245,241]},
+    columnStyles:{2:{halign:"right"}}
+  });
+  const fname="GreenBESS_Kundenstatus_"+srcLabel.replace(/[^A-Za-z0-9]+/g,"_")+".pdf";
+  return {doc,fname};
+}
+function exportPDF(){
+  const r=makePDF();if(!r)return;
+  r.doc.save(r.fname);
+  toast("PDF erstellt – Öffnen mit dem PDF-Passwort");
+}
+function sharePDF(){
+  const r=makePDF();if(!r)return;
+  try{
+    const blob=r.doc.output("blob");
+    const file=new File([blob],r.fname,{type:"application/pdf"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:"Kundenstatus",text:"Kundenstatus-Übersicht (PDF-Passwort erforderlich)"}).then(()=>toast("Geteilt")).catch(()=>{});
+    }else{
+      r.doc.save(r.fname);
+      toast("Direktes Teilen hier nicht möglich – PDF gespeichert, du kannst es manuell teilen.");
+    }
+  }catch(e){r.doc.save(r.fname);toast("PDF gespeichert.");}
+}
+
+/* ---------- Utils ---------- */
+let toastT;
+function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),1900);}
+
+showDefaultsHint();
+</script>
+</body>
+</html>
